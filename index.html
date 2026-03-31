@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DUMP — 詰め込むだけ整理ツール</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#f0f8ff;--bg2:#e4f3fc;--surface:#fff;--surface2:#f5fbff;
+    --border:#c2e4f5;--border2:#a8d8ef;
+    --accent:#1aa3d4;--accent-light:#e0f4fc;--accent-dark:#0d7fa8;
+    --text:#1a2e3a;--muted:#7da8be;
+    --radius:14px;--shadow:0 2px 12px rgba(26,163,212,.08);--shadow-h:0 4px 20px rgba(26,163,212,.15);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);background-image:radial-gradient(circle at 20% 0%,rgba(26,163,212,.07) 0%,transparent 50%),radial-gradient(circle at 80% 100%,rgba(26,163,212,.05) 0%,transparent 50%);color:var(--text);font-family:'Noto Sans JP',sans-serif;min-height:100vh}
+
+  header{background:rgba(255,255,255,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:200}
+  .logo-wrap{display:flex;align-items:center;gap:10px}
+  .logo-icon{width:34px;height:34px;background:var(--accent);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 2px 8px rgba(26,163,212,.3)}
+  .logo{font-family:'DM Sans',sans-serif;font-weight:700;font-size:20px;color:var(--accent-dark);letter-spacing:-.5px}
+  .tagline{font-size:11px;color:var(--muted)}
+  .total-count{margin-left:auto;font-size:12px;color:var(--accent);background:var(--accent-light);padding:4px 12px;border-radius:20px;font-weight:500;border:1px solid var(--border);white-space:nowrap}
+
+  .tabs-bar{background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);padding:0 24px;display:flex;position:sticky;top:63px;z-index:150;overflow-x:auto}
+  .tab-btn{padding:12px 18px;font-size:13px;font-family:'Noto Sans JP',sans-serif;font-weight:500;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2.5px solid transparent;transition:all .15s;display:flex;align-items:center;gap:6px;white-space:nowrap}
+  .tab-btn:hover{color:var(--accent)}
+  .tab-btn.active{color:var(--accent-dark);border-bottom-color:var(--accent);font-weight:700}
+  .tab-count{font-size:10px;background:var(--accent-light);color:var(--accent);padding:1px 7px;border-radius:10px;font-weight:500}
+  .tab-btn.active .tab-count{background:var(--accent);color:#fff}
+
+  .container{max-width:860px;margin:0 auto;padding:24px 16px 80px}
+
+  .input-area{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:14px;box-shadow:var(--shadow);transition:border-color .2s,box-shadow .2s}
+  .input-area:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,163,212,.1),var(--shadow)}
+  .input-label{font-size:11px;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;font-family:'DM Sans',sans-serif;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .input-label::before{content:'';display:inline-block;width:6px;height:6px;background:var(--accent);border-radius:50%}
+  textarea{width:100%;background:transparent;border:none;outline:none;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:14px;line-height:1.75;resize:none;min-height:64px}
+  textarea::placeholder{color:#b0cede}
+  .schedule-meta{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .date-input{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:13px;outline:none}
+  .date-input:focus{border-color:var(--accent)}
+  .input-footer{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--bg2);gap:8px;flex-wrap:wrap}
+  .hint{font-size:11px;color:var(--muted)}
+  .btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+  /* Buttons */
+  .btn{border:none;border-radius:10px;padding:9px 18px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;white-space:nowrap}
+  .btn-primary{background:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(26,163,212,.3)}
+  .btn-primary:hover{background:var(--accent-dark)}
+  .btn-primary:active{transform:scale(.97)}
+  .btn-primary:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+  .btn-ghost{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
+  .btn-ghost:hover{background:var(--accent-light)}
+  .btn-propose{background:linear-gradient(135deg,#36b8e0,var(--accent-dark));color:#fff;box-shadow:0 2px 8px rgba(26,163,212,.3)}
+  .btn-propose:hover{opacity:.88}
+  .btn-propose:disabled{opacity:.45;cursor:not-allowed}
+
+  .api-error{font-size:12px;color:#e05555;margin-top:6px}
+
+  /* proposal */
+  .proposal-box{background:linear-gradient(135deg,#e8f7fd,#f0f8ff);border:1.5px solid var(--accent);border-radius:var(--radius);padding:18px 20px;margin-bottom:14px;box-shadow:var(--shadow);animation:slideIn .3s ease}
+  .proposal-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .proposal-title{font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;color:var(--accent-dark)}
+  .proposal-close{margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;border-radius:4px}
+  .proposal-close:hover{color:var(--text)}
+  .proposal-body{font-size:13px;line-height:1.85;color:var(--text);white-space:pre-wrap}
+
+  /* controls */
+  .controls{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+  .search-box{flex:1;min-width:140px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:9px 14px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:13px;outline:none;transition:border-color .2s,box-shadow .2s;box-shadow:var(--shadow)}
+  .search-box:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,163,212,.1)}
+  .search-box::placeholder{color:#b0cede}
+  .dl-group{display:flex;gap:6px}
+  .dl-btn{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:8px 14px;color:var(--muted);font-size:12px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all .15s;display:flex;align-items:center;gap:5px;box-shadow:var(--shadow);white-space:nowrap}
+  .dl-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+  /* cards */
+  .cards-grid{display:flex;flex-direction:column;gap:10px}
+  .card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px 18px;position:relative;animation:slideIn .3s ease;box-shadow:var(--shadow);transition:box-shadow .2s,border-color .2s}
+  .card:hover{box-shadow:var(--shadow-h);border-color:var(--border2)}
+  @keyframes slideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+  .card-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+  .card-time{font-size:11px;color:var(--muted)}
+  .card-due{font-size:11px;color:#fff;padding:2px 9px;border-radius:5px;font-weight:500}
+  .card-due.ok{background:var(--accent)}.card-due.soon{background:#f5a623}.card-due.past{background:#e05555}
+  .card-content{font-size:14px;line-height:1.75;color:var(--text);margin-bottom:8px;white-space:pre-wrap;word-break:break-word}
+  .card-summary{font-size:12px;color:#2a7a96;background:#e8f7fd;padding:7px 12px;border-radius:8px;margin-bottom:8px;border-left:3px solid var(--accent)}
+  .subtasks{margin-bottom:8px;display:flex;flex-direction:column;gap:3px}
+  .subtask{font-size:12px;color:#4a7a90;padding:3px 10px 3px 12px;border-left:2px solid var(--border2);background:var(--surface2);border-radius:0 6px 6px 0}
+  .card-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+  .tag{font-size:11px;padding:2px 9px;border-radius:5px;background:var(--accent-light);color:var(--accent-dark);border:1px solid var(--border);font-weight:500;cursor:pointer;transition:background .12s}
+  .tag:hover{background:var(--border2)}
+  .tag-remove{font-size:10px;margin-left:3px;opacity:.6}
+
+  /* card action buttons */
+  .card-actions{display:flex;gap:6px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--bg2)}
+  .card-act-btn{font-size:11px;padding:4px 11px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);cursor:pointer;font-family:'Noto Sans JP',sans-serif;transition:all .15s;display:flex;align-items:center;gap:4px}
+  .card-act-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+  .card-act-btn.loading{opacity:.5;cursor:not-allowed;pointer-events:none}
+  .card-delete{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;padding:4px 6px;border-radius:6px;transition:all .15s;opacity:0;line-height:1}
+  .card:hover .card-delete{opacity:1}
+  .card-delete:hover{background:#fee;color:#e05555}
+
+  /* tag picker modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px)}
+  .modal{background:var(--surface);border-radius:var(--radius);padding:24px;max-width:440px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.15);animation:modalIn .2s ease}
+  @keyframes modalIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+  .modal-title{font-family:'DM Sans',sans-serif;font-weight:700;font-size:15px;color:var(--accent-dark);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .modal-tag-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;min-height:36px}
+  .modal-tag{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;cursor:pointer;transition:all .12s;font-family:'Noto Sans JP',sans-serif}
+  .modal-tag:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+  .modal-tag.selected{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .modal-custom-row{display:flex;gap:8px;margin-bottom:16px}
+  .modal-input{flex:1;border:1.5px solid var(--border);border-radius:9px;padding:8px 12px;font-size:13px;font-family:'Noto Sans JP',sans-serif;outline:none;color:var(--text);background:var(--bg2)}
+  .modal-input:focus{border-color:var(--accent)}
+  .modal-footer{display:flex;justify-content:flex-end;gap:8px}
+  .modal-cancel{background:none;border:1.5px solid var(--border);border-radius:9px;padding:8px 16px;color:var(--muted);font-size:13px;cursor:pointer;font-family:'Noto Sans JP',sans-serif}
+  .modal-cancel:hover{border-color:var(--border2);color:var(--text)}
+  .modal-ok{background:var(--accent);color:#fff;border:none;border-radius:9px;padding:8px 18px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;cursor:pointer}
+  .modal-ok:hover{background:var(--accent-dark)}
+  .modal-loading{font-size:13px;color:var(--muted);padding:8px 0}
+
+  /* organize result inside card */
+  .organize-result{background:linear-gradient(135deg,#e8f7fd,#f5fbff);border:1px solid var(--accent);border-radius:10px;padding:12px 14px;margin-top:8px;animation:slideIn .25s ease}
+  .organize-result-title{font-size:11px;font-weight:700;color:var(--accent-dark);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px}
+  .organize-result-body{font-size:12px;line-height:1.8;color:var(--text);white-space:pre-wrap}
+
+  /* skeleton */
+  .skeleton{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);animation:pulse 1.2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+  .skel-line{height:11px;background:var(--bg2);border-radius:4px;margin-bottom:9px}
+  .skel-line.s{width:28%}.skel-line.m{width:55%}
+
+  .empty{text-align:center;padding:50px 20px;color:var(--muted)}
+  .empty-icon{font-size:40px;margin-bottom:12px}
+  .empty-text{font-size:13px;line-height:1.8}
+
+  .scroll-top{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1.5px solid var(--border);color:var(--accent);width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;box-shadow:var(--shadow);transition:all .2s;opacity:0;pointer-events:none}
+  .scroll-top.visible{opacity:1;pointer-events:auto}
+  .scroll-top:hover{background:var(--accent);color:#fff}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-wrap">
+    <div class="logo-icon">📥</div>
+    <div>
+      <div class="logo">DUMP</div>
+      <div class="tagline">詰め込むだけ。AIが整理する。</div>
+    </div>
+  </div>
+  <div class="total-count" id="totalCount">合計 0 件</div>
+</header>
+
+<div class="tabs-bar">
+  <button class="tab-btn active" onclick="switchTab('diary',this)">📔 日記 <span class="tab-count" id="cnt-diary">0</span></button>
+  <button class="tab-btn" onclick="switchTab('idea',this)">💡 アイデア <span class="tab-count" id="cnt-idea">0</span></button>
+  <button class="tab-btn" onclick="switchTab('schedule',this)">📅 スケジュール <span class="tab-count" id="cnt-schedule">0</span></button>
+  <button class="tab-btn" onclick="switchTab('memo',this)">📝 メモ <span class="tab-count" id="cnt-memo">0</span></button>
+</div>
+
+<div class="container">
+  <div class="input-area">
+    <div class="input-label" id="inputLabel">日記を書く</div>
+    <textarea id="inputText" placeholder="今日あったことを書いてみて。箇条書きでも文章でもOK。" rows="3"></textarea>
+    <div class="schedule-meta" id="scheduleMeta" style="display:none">
+      <input type="date" class="date-input" id="schedDate">
+      <input type="time" class="date-input" id="schedTime">
+    </div>
+    <div class="input-footer">
+      <span class="hint">Ctrl + Enter で保存</span>
+      <div class="btn-row">
+        <button class="btn btn-propose" id="proposeBtn" onclick="requestProposal()">✨ AIに提案させる</button>
+        <button class="btn btn-primary" id="submitBtn" onclick="submitDump()"><span id="btnLabel">保存する</span> →</button>
+      </div>
+    </div>
+    <div class="api-error" id="apiError"></div>
+  </div>
+
+  <div class="proposal-box" id="proposalBox" style="display:none">
+    <div class="proposal-head">
+      <span>✨</span><span class="proposal-title">AIからの提案</span>
+      <button class="proposal-close" onclick="document.getElementById('proposalBox').style.display='none'">×</button>
+    </div>
+    <div class="proposal-body" id="proposalBody"></div>
+  </div>
+
+  <div class="controls">
+    <input class="search-box" id="searchBox" placeholder="🔍 キーワードで検索…" oninput="renderCards()">
+    <div class="dl-group">
+      <button class="dl-btn" onclick="downloadTxt()">⬇ TXT</button>
+      <button class="dl-btn" onclick="downloadCsv()">⬇ CSV</button>
+    </div>
+  </div>
+
+  <div class="cards-grid" id="cardsGrid"></div>
+</div>
+
+<!-- Tag picker modal -->
+<div class="modal-overlay" id="tagModal" style="display:none" onclick="closeTagModal(event)">
+  <div class="modal">
+    <div class="modal-title">🏷️ タグを選ぶ・追加する</div>
+    <div class="modal-loading" id="tagLoading">AIがタグを提案しています…</div>
+    <div class="modal-tag-list" id="tagList"></div>
+    <div class="modal-custom-row">
+      <input class="modal-input" id="customTagInput" placeholder="自分でタグを入力…" onkeydown="if(event.key==='Enter')addCustomTag()">
+      <button class="btn btn-ghost" onclick="addCustomTag()" style="padding:8px 14px;font-size:13px">追加</button>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-cancel" onclick="closeTagModal()">キャンセル</button>
+      <button class="modal-ok" onclick="applyTags()">保存する</button>
+    </div>
+  </div>
+</div>
+
+<div class="scroll-top" id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</div>
+
+<script>
+const TABS = {
+  diary:    {label:'日記',      icon:'📔',ph:'今日あったことを書いてみて。箇条書きでも文章でもOK。',         hint:'日記',hasDate:false},
+  idea:     {label:'アイデア',  icon:'💡',ph:'ビジネスアイデア、ひらめき、やってみたいこと… なんでも。',     hint:'アイデア',hasDate:false},
+  schedule: {label:'スケジュール',icon:'📅',ph:'予定やタスクを入力。日付も選んでね。',                       hint:'スケジュール・タスク',hasDate:true},
+  memo:     {label:'メモ',      icon:'📝',ph:'あとで使いたいこと、忘れたくないこと、なんでも放り込んで。',   hint:'メモ・その他',hasDate:false},
+};
+
+let cur = 'diary';
+let data = JSON.parse(localStorage.getItem('dump_v3')||'{"diary":[],"idea":[],"schedule":[],"memo":[]}');
+
+// ensure all tabs exist
+Object.keys(TABS).forEach(t=>{ if(!data[t]) data[t]=[]; });
+
+// tag modal state
+let tagModalItemId = null;
+let tagModalSelected = [];
+
+// ---- Tab ----
+function switchTab(tab, el) {
+  cur = tab;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  const c = TABS[tab];
+  document.getElementById('inputLabel').textContent = c.label+'を書く';
+  document.getElementById('inputText').placeholder = c.ph;
+  document.getElementById('scheduleMeta').style.display = c.hasDate?'flex':'none';
+  document.getElementById('proposalBox').style.display = 'none';
+  renderCards();
+}
+
+// ---- Submit (save only, no AI) ----
+async function submitDump() {
+  const text = document.getElementById('inputText').value.trim();
+  if (!text) return;
+  const btn = document.getElementById('submitBtn');
+  const lbl = document.getElementById('btnLabel');
+  btn.disabled=true; lbl.textContent='保存中…';
+
+  const dueDate = TABS[cur].hasDate ? document.getElementById('schedDate').value : '';
+  const dueTime = TABS[cur].hasDate ? document.getElementById('schedTime').value : '';
+
+  const item = {
+    id: Date.now(), text,
+    summary:'', tags:[], subtasks:[],
+    dueDate, dueTime,
+    date: new Date().toLocaleDateString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})
+  };
+  data[cur].unshift(item);
+  save();
+  document.getElementById('inputText').value = '';
+  if (dueDate) { document.getElementById('schedDate').value=''; document.getElementById('schedTime').value=''; }
+  btn.disabled=false; lbl.textContent='保存する';
+  updateCounts(); renderCards();
+}
+
+// ---- TAG MODAL ----
+async function openTagModal(itemId) {
+  tagModalItemId = itemId;
+  const item = findItem(itemId);
+  if (!item) return;
+
+  // reset
+  tagModalSelected = [...(item.tags||[])];
+  document.getElementById('tagLoading').style.display='block';
+  document.getElementById('tagList').innerHTML='';
+  document.getElementById('customTagInput').value='';
+  document.getElementById('tagModal').style.display='flex';
+
+  // render current tags first
+  renderTagModal([]);
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514", max_tokens:300,
+        messages:[{role:"user",content:`以下のテキストに合うタグを6〜8個提案してください。JSONのみで返してください（マークダウンなし）。\n{"tags":["タグ1","タグ2","タグ3"]}\n\nテキスト:"""${item.text}"""`}]
+      })
+    });
+    const d = await res.json();
+    const parsed = JSON.parse(d.content[0].text.trim().replace(/```json|```/g,'').trim());
+    document.getElementById('tagLoading').style.display='none';
+    renderTagModal(parsed.tags||[]);
+  } catch(e) {
+    document.getElementById('tagLoading').textContent='提案の取得に失敗しました。手動で入力してください。';
+  }
+}
+
+function renderTagModal(suggestedTags) {
+  const list = document.getElementById('tagList');
+  // merge suggested + already selected
+  const all = [...new Set([...suggestedTags, ...tagModalSelected])];
+  list.innerHTML = all.map(t=>`
+    <div class="modal-tag ${tagModalSelected.includes(t)?'selected':''}" onclick="toggleModalTag(this,'${esc(t)}')">${esc(t)}</div>
+  `).join('');
+}
+
+function toggleModalTag(el, tag) {
+  if (tagModalSelected.includes(tag)) {
+    tagModalSelected = tagModalSelected.filter(t=>t!==tag);
+    el.classList.remove('selected');
+  } else {
+    tagModalSelected.push(tag);
+    el.classList.add('selected');
+  }
+}
+
+function addCustomTag() {
+  const input = document.getElementById('customTagInput');
+  const val = input.value.trim().replace(/^#/,'');
+  if (!val) return;
+  if (!tagModalSelected.includes(val)) tagModalSelected.push(val);
+  input.value='';
+  // re-render
+  const list = document.getElementById('tagList');
+  const existing = [...list.querySelectorAll('.modal-tag')].map(el=>el.textContent.trim());
+  if (!existing.includes(val)) {
+    const div = document.createElement('div');
+    div.className='modal-tag selected';
+    div.textContent=val;
+    div.onclick=()=>toggleModalTag(div,val);
+    list.appendChild(div);
+  } else {
+    list.querySelectorAll('.modal-tag').forEach(el=>{
+      if(el.textContent.trim()===val) el.classList.add('selected');
+    });
+  }
+}
+
+function applyTags() {
+  const item = findItem(tagModalItemId);
+  if (item) { item.tags = tagModalSelected; save(); renderCards(); }
+  closeTagModal();
+}
+
+function closeTagModal(e) {
+  if (e && e.target !== document.getElementById('tagModal')) return;
+  document.getElementById('tagModal').style.display='none';
+  tagModalItemId=null;
+}
+
+// ---- ORGANIZE ----
+async function organizeItem(itemId, btnEl) {
+  const item = findItem(itemId);
+  if (!item) return;
+  btnEl.classList.add('loading');
+  btnEl.textContent='⏳ 整理中…';
+
+  // remove old organize result
+  const card = document.getElementById('card_'+itemId);
+  const old = card.querySelector('.organize-result');
+  if (old) old.remove();
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514", max_tokens:800,
+        messages:[{role:"user",content:`以下のメモを整理してください。日本語で返してください。\n\nテキスト:"""${item.text}"""\n\n以下の構成でまとめてください：\n・15字以内の要約（1行）\n・ポイント（箇条書き、2〜4個）\n・次にやること（具体的なアクション、2〜3個）\n\nシンプルで読みやすく。`}]
+      })
+    });
+    const d = await res.json();
+    const resultText = d.content[0].text;
+
+    // save summary (first line)
+    const firstLine = resultText.split('\n')[0].replace(/^[・\-＊\*#\s]+/,'');
+    item.summary = firstLine.slice(0,30);
+    save();
+
+    // show in card
+    const box = document.createElement('div');
+    box.className='organize-result';
+    box.innerHTML=`<div class="organize-result-title">✨ 整理結果</div><div class="organize-result-body">${esc(resultText)}</div>`;
+    card.querySelector('.card-actions').before(box);
+  } catch(e) {
+    alert('整理に失敗しました。もう一度お試しください。');
+  } finally {
+    btnEl.classList.remove('loading');
+    btnEl.textContent='🗂 整理する';
+  }
+}
+
+// ---- Proposal ----
+async function requestProposal() {
+  const items = data[cur]||[];
+  if (!items.length) { alert('まだ何も登録されていません。'); return; }
+  const btn = document.getElementById('proposeBtn');
+  btn.disabled=true; btn.textContent='✨ 分析中…';
+  document.getElementById('proposalBox').style.display='block';
+  document.getElementById('proposalBody').textContent='分析中…';
+  const texts = items.slice(0,20).map((it,i)=>`${i+1}. ${it.text}`).join('\n');
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514", max_tokens:1000,
+        messages:[{role:"user",content:`以下は「${TABS[cur].label}」に蓄積されたデータです。\n\n${texts}\n\nこれらを読んで日本語で：\n1. 全体の傾向・パターンを2〜3文で要約\n2. 気づいたこと・注目ポイントを2〜3点\n3. 次のアクションや改善への具体的な提案を2〜3点\n\n温かく、前向きなトーンで。`}]
+      })
+    });
+    const d = await res.json();
+    document.getElementById('proposalBody').textContent = d.content[0].text;
+  } catch(e) {
+    document.getElementById('proposalBody').textContent = '分析に失敗しました。';
+  } finally {
+    btn.disabled=false; btn.textContent='✨ AIに提案させる';
+  }
+}
+
+// ---- Render ----
+function renderCards() {
+  const grid = document.getElementById('cardsGrid');
+  const q = document.getElementById('searchBox').value.toLowerCase();
+  const items = (data[cur]||[]).filter(item=>{
+    if(!q) return true;
+    return item.text.toLowerCase().includes(q)||(item.summary||'').toLowerCase().includes(q)||(item.tags||[]).some(t=>t.toLowerCase().includes(q));
+  });
+
+  if (!items.length && !(data[cur]||[]).length) {
+    const c=TABS[cur];
+    grid.innerHTML=`<div class="empty"><div class="empty-icon">${c.icon}</div><div class="empty-text">${c.label}を書いてみて。<br>保存後に「タグ付け」や「整理する」ボタンが使えるよ。</div></div>`;
+    return;
+  }
+  if (!items.length) {
+    grid.innerHTML=`<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">一致するものが見つかりません。</div></div>`;
+    return;
+  }
+
+  grid.innerHTML = items.map(item=>{
+    let dueHtml='';
+    if(item.dueDate){
+      const now=new Date(),due=new Date(item.dueDate+(item.dueTime?'T'+item.dueTime:'T23:59'));
+      const diff=due-now;
+      const cls=diff<0?'past':diff<172800000?'soon':'ok';
+      dueHtml=`<span class="card-due ${cls}">📅 ${item.dueDate}${item.dueTime?' '+item.dueTime:''}</span>`;
+    }
+    const tagsHtml = (item.tags||[]).map(t=>`<span class="tag">#${esc(t)} <span class="tag-remove" onclick="removeTag(${item.id},'${esc(t)}')">×</span></span>`).join('');
+    return `<div class="card" id="card_${item.id}">
+      <button class="card-delete" onclick="deleteItem(${item.id})" title="削除">×</button>
+      <div class="card-top"><span class="card-time">${item.date}</span>${dueHtml}</div>
+      <div class="card-content">${esc(item.text)}</div>
+      ${item.summary?`<div class="card-summary">💡 ${esc(item.summary)}</div>`:''}
+      ${item.subtasks&&item.subtasks.length?`<div class="subtasks">${item.subtasks.map((t,i)=>`<div class="subtask">${i+1}. ${esc(t)}</div>`).join('')}</div>`:''}
+      ${tagsHtml?`<div class="card-tags">${tagsHtml}</div>`:''}
+      <div class="card-actions">
+        <button class="card-act-btn" onclick="openTagModal(${item.id})">🏷️ タグ付け</button>
+        <button class="card-act-btn" onclick="organizeItem(${item.id},this)">🗂 整理する</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function removeTag(itemId, tag) {
+  const item = findItem(itemId);
+  if (!item) return;
+  item.tags = (item.tags||[]).filter(t=>t!==tag);
+  save(); renderCards();
+}
+
+function deleteItem(id){
+  data[cur]=(data[cur]||[]).filter(i=>i.id!==id);
+  save(); updateCounts(); renderCards();
+}
+
+// ---- Download ----
+function downloadTxt(){
+  const items=getVisible(); if(!items.length){alert('データがありません。');return;}
+  const c=TABS[cur];
+  let txt=`=== ${c.icon} ${c.label} ===\n出力日時: ${new Date().toLocaleString('ja-JP')}\n\n`;
+  items.forEach((it,i)=>{
+    txt+=`【${i+1}】${it.date}${it.dueDate?'　期日:'+it.dueDate+(it.dueTime?' '+it.dueTime:''):''}\n`;
+    txt+=it.text+'\n';
+    if(it.summary) txt+=`▶ 要約: ${it.summary}\n`;
+    if(it.subtasks&&it.subtasks.length) txt+=it.subtasks.map((t,j)=>`  ${j+1}. ${t}`).join('\n')+'\n';
+    if(it.tags&&it.tags.length) txt+='タグ: '+it.tags.map(t=>'#'+t).join(' ')+'\n';
+    txt+='\n';
+  });
+  dl(c.label+'_'+ds()+'.txt', txt,'text/plain');
+}
+
+function downloadCsv(){
+  const items=getVisible(); if(!items.length){alert('データがありません。');return;}
+  const c=TABS[cur];
+  const rows=[['日時','内容','要約','タグ','手順','期日']];
+  items.forEach(it=>rows.push([
+    it.date,it.text.replace(/\n/g,' '),it.summary||'',
+    (it.tags||[]).join(' '),(it.subtasks||[]).join(' / '),
+    it.dueDate?(it.dueDate+(it.dueTime?' '+it.dueTime:'')):'',
+  ]));
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  dl(c.label+'_'+ds()+'.csv','\uFEFF'+csv,'text/csv;charset=utf-8;');
+}
+
+function getVisible(){const q=document.getElementById('searchBox').value.toLowerCase();return(data[cur]||[]).filter(it=>!q||it.text.toLowerCase().includes(q)||(it.summary||'').toLowerCase().includes(q))}
+function dl(name,content,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click()}
+function ds(){return new Date().toISOString().slice(0,10).replace(/-/g,'')}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function findItem(id){return(data[cur]||[]).find(i=>i.id===id)}
+function updateCounts(){let t=0;Object.keys(TABS).forEach(tab=>{const n=(data[tab]||[]).length;t+=n;document.getElementById('cnt-'+tab).textContent=n});document.getElementById('totalCount').textContent='合計 '+t+' 件'}
+function save(){localStorage.setItem('dump_v3',JSON.stringify(data))}
+
+document.getElementById('inputText').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter')submitDump()});
+window.addEventListener('scroll',()=>{document.getElementById('scrollTop').classList.toggle('visible',window.scrollY>300)});
+
+updateCounts(); renderCards();
+</script>
+</body>
+</html>
